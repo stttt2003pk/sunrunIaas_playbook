@@ -1,0 +1,10 @@
+---
+
+- name: Stop gluster cluster
+  service: name={{ glusterfs_daemon }} state=stopped
+  ignore_errors: yes
+
+- name: Remove original /var/lib/glusterd
+  file: path=/var/lib/glusterd state=absent
+
+

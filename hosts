@@ -1,0 +1,90 @@
+
+[servers]
+rabbitmaster ansible_ssh_host=192.168.1.112 ansible_user=root ansible_ssh_pass=sunrunvas
+rabbitslave1 ansible_ssh_host=192.168.1.113 ansible_user=root ansible_ssh_pass=sunrunvas
+rabbitslave2 ansible_ssh_host=192.168.1.114 ansible_user=root ansible_ssh_pass=sunrunvas
+
+[hostagents]
+rabbitmaster
+rabbitslave1
+rabbitslave2
+
+[managers]
+rabbitmaster
+rabbitslave1
+rabbitslave2
+
+[glances]
+rabbitmaster
+
+[hacluster]
+rabbitmaster
+rabbitslave1
+rabbitslave2
+
+[rabbits]
+rabbitmaster mq_master=yes
+rabbitslave1 
+rabbitslave2 
+
+[mariadbs]
+rabbitmaster mysql_master=yes
+rabbitslave1
+rabbitslave2
+
+[ntp]
+rabbitmaster ntp_master=yes
+rabbitslave1
+rabbitslave2
+
+[glusters]
+rabbitmaster gluster_peer_name=gluster01 gluster_peer_ip=10.10.10.112
+rabbitslave1 gluster_peer_name=gluster02 gluster_peer_ip=10.10.10.113
+rabbitslave2 gluster_peer_name=gluster03 gluster_peer_ip=10.10.10.114
+
+[servers:vars]
+config_hostname=yes
+yumrepo_repos={'aio': 'http://192.168.1.104:8000/allinone-updated'}
+
+[hostagents:vars]
+install_hostagent=yes
+hostagent_bwlimit=10
+clean_existed_hostagent=0
+
+[managers:vars]
+install_mgmt=yes
+mgmt_db_host=127.0.0.1
+clean_existed_mgmt=0
+
+[glances:vars]
+install_imageservice=yes
+imageservice_home_dir=/opt/sunrun/data/ftp
+
+[hacluster:vars]
+install_hac=yes
+clean_existed_hac=0
+sunrun_hac_group_id=10
+sunrun_hac_iface_name=em1
+sunrun_hac_vip_address=192.168.1.119
+sunrun_hac_vip_netmask=255.255.252.0
+sunrun_hac_processes=['mysqld']
+sunrun_hac_ports=[5672, 8901]
+sunrun_hac_log_lvl=5
+
+[rabbits:vars]
+install_rabbitmq=yes
+clean_existed_rabbitmq=0
+rabbitmq_erlang_cookie=NNYm39bSA1i7yB+fQjTdiOJK
+
+[mariadbs:vars]
+install_db=yes
+clean_existed_db=0
+mysql_root_password=sunrunvas
+mysql_cluster_name=iaas_db_cluster
+
+[ntp:vars]
+config_ntp=yes
+
+[glusters:vars]
+install_glusterfs=yes
+clean_existed_gluster=0

@@ -1,0 +1,7 @@
+---
+
+- name: Connect to Gluster peers.
+  shell: "gluster peer probe {{ hostvars[item].gluster_peer_name }}"
+  register: gluster_peer_probe
+  when: " item !=  inventory_hostname  "
+  with_items: '{{ groups[group_name] }}'

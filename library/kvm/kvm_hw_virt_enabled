@@ -1,0 +1,53 @@
+#!/usr/bin/python
+
+import os
+import re
+
+
+def kvm_hw_virt_enabled(module):
+    try:
+        cpuinfo_file_path = '/proc/cpuinfo'
+        if not os.path.exists(cpuinfo_file_path):
+            raise Exception('Read /proc/cpuinfo failed')
+
+        with open(cpuinfo_file_path) as cpuinfo_file:
+            cpu_metrics = cpuinfo_file.read()
+            if not cpu_metrics:
+                raise Exception('Read /proc/cpuinfo failed')
+
+            vmx_re = re.compile(r'\s(vmx)\s')
+            if vmx_re.search(cpu_metrics):
+                return 0, 'vmx'
+
+            svm_re = re.compile(r'\s(svm)\s')
+            if svm_re.search(cpu_metrics):
+                return 0, 'svm'
+
+        raise Exception('CPU hardware virtualization is disabled')
+    except Exception as e:
+        return 1, str(e)
+
+
+def main():
+    module = AnsibleModule(
+        argument_spec=dict(
+        ),
+        supports_check_mode=True
+    )
+
+    # In check mode, we take no action
+    # Since this module never changes system state, we just
+    # return changed=False
+    if module.check_mode:
+        module.exit_json(changed=False)
+
+    (rc, msg) = kvm_hw_virt_enabled(module)
+    if rc == 0:
+        module.exit_json(changed=False, stdout=msg, stderr="", rc=rc)
+    else:
+        module.fail_json(msg=msg, stdout='', stderr=msg, rc=rc)
+
+
+from ansible.module_utils.basic import *
+
+main()

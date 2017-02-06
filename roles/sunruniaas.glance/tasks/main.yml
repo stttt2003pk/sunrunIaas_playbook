@@ -1,0 +1,31 @@
+---
+# tasks file for ansible-role-hosts-deploy
+
+- name: Remove existed sunruniaas-imageservice package
+  yum: name=sunruniaas-imageservice state=absent
+
+- name: Install sunruniaas-imageservice packages
+  shell: yum localinstall {{ item }} -y
+  with_items:
+    - /opt/sunrun/rpms/files/sunruniaas-pypi*
+    - /opt/sunrun/rpms/files/sunruniaas-imageservice*
+
+- name: Prepare /opt/sunrun/etc directory
+  file: path=/opt/sunrun/etc state=directory mode=0755
+
+- name: Configure blueglance.cfg
+  template: src=etc/blueglance.cfg.j2 dest=/opt/sunrun/etc/blueglance.cfg owner=root group=root mode=0644
+  tags:
+    - config_glance
+
+- name: Start glance service
+  service:
+    name: sunruniaas-glance
+    state: restarted
+    enabled: yes
+  tags:
+    - config_glance
+
+
+
+

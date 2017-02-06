@@ -1,0 +1,23 @@
+---
+
+- name: Peer probe
+  include: join_cluster.yml
+  run_once: yes
+
+- name: Fetch gluster node uuid
+  gluster_peer_uuid:
+  register: gluster_peer_result
+
+- name: Match gluster uuid and name
+  set_fact:
+    gluster_node_uuid:  '{{ gluster_peer_result.stdout }}'
+
+- name: Uniform peer name
+  gluster_peer_name:
+    uuid: '{{ hostvars[item].gluster_node_uuid }}'
+    name: '{{ hostvars[item].gluster_peer_name }}'
+  with_items: '{{ groups[group_name] }}'
+
+- name: Restart gluster cluster
+  service: name={{ glusterfs_daemon }} state=restarted enabled=yes
+

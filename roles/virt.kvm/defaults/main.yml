@@ -1,0 +1,10 @@
+---
+# defaults file for ansible-role-kvm-host
+
+install_virt_manager: no
+nested_virt_enable: yes
+#libvirtd_tcp_port: "16509"
+libvirtd_tcp_auth: "none"
+libvirt_guests_on_boot_action: "ignore"
+libvirt_guests_on_shutdown_action: "shutdown"
+libvirt_guests_start_delay: 1

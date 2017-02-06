@@ -1,0 +1,44 @@
+{
+        "devices":[
+                {
+                        "name":"{{ ansible_ssh_host }}",
+                        "self-device":1
+                }
+        ],
+        "ha-groups":[
+                {
+                        "id":{{ sunrun_hac_group_id }}",
+                        "preempt":0,
+                        "ifname":"{{ sunrun_hac_iface_name }}",
+                        "virtual-addresses":[
+                                {
+                                        "address":"{{ sunrun_hac_vip_address }}",
+                                        "netmask":"{{ sunrun_hac_vip_netmask }}"
+                                }
+                        ],
+                        "members":[
+                            {{ hac_members | join(",") }}
+                        ]
+                }
+        ],
+        "process-monitors":[
+            {% for item in sunrun_hac_processes %}
+                {
+                        "name":"{{ item }}"
+                },
+            {% endfor %}
+        ],
+        "net-monitors":[
+            {% for item in sunrun_hac_ports %}
+		    {
+			    "address":"{{ ansible_ssh_host }}:{{ item }}",
+			    "type":"tcp"
+		    },
+		    {% endfor %}
+		],
+        "log":{
+                "level":{{ sunrun_hac_log_lvl }},
+                "path":"/var/log/sunrun/srhac/"
+        }
+}
+

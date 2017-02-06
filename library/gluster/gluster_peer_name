@@ -1,0 +1,52 @@
+#!/usr/bin/python
+
+import os
+
+
+def gluster_peer_name(module, uuid, name):
+    try:
+        peer_ini_file = '/var/lib/glusterd/peers/%s' % uuid
+        if not os.path.exists(peer_ini_file):
+            return 0, None
+
+        lines = [
+            "uuid=%s\n" % uuid,
+            "state=3\n",
+            "hostname1=%s\n" % name
+        ]
+
+        with open(peer_ini_file, 'w') as ini_file:
+            ini_file.writelines(lines)
+
+        return 0, None
+    except Exception as e:
+        return 1, str(e)
+
+
+def main():
+    module = AnsibleModule(
+        argument_spec=dict(
+            uuid=dict(required=True),
+            name=dict(required=True),
+        ),
+        supports_check_mode=True
+    )
+
+    # In check mode, we take no action
+    # Since this module never changes system state, we just
+    # return changed=False
+    if module.check_mode:
+        module.exit_json(changed=False)
+
+    uuid = module.params['uuid']
+    name = module.params['name']
+    (rc, msg) = gluster_peer_name(module, uuid, name)
+    if rc == 0:
+        module.exit_json(changed=False, stdout=uuid, stderr="", rc=rc)
+    else:
+        module.fail_json(msg="Rename peer failed", stdout=uuid, stderr=msg, rc=rc)
+
+
+from ansible.module_utils.basic import *
+
+main()

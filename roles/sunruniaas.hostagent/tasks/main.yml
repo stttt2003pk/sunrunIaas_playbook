@@ -1,0 +1,31 @@
+---
+# tasks file for ansible-role-hosts-deploy
+
+- name: Remove existed sunruniaas-hostagent package
+  shell: yum erase {{ item }} -y
+  with_items:
+    - sunruniaas-hostagent
+    - sunruniaas-monit
+  when: clean_existed_hostagent
+
+- name: Remove existed info file
+  file: path=/var/lib/sunrun/blueagent/blueagent.info state=absent
+  when: clean_existed_hostagent
+
+- name: Install sunruniaas-hostagent packages
+  shell: yum localinstall {{ item }} -y
+  with_items:
+    - /opt/sunrun/rpms/files/sunruniaas-pypi*
+    - /opt/sunrun/rpms/files/sunruniaas-hostagent*
+
+- name: Prepare /opt/sunrun/etc directory
+  file: path=/opt/sunrun/etc state=directory mode=0755
+
+- name: Configure blueagent.cfg
+  template: src=etc/blueagent.cfg.j2 dest=/opt/sunrun/etc/blueagent.cfg owner=root group=root mode=0644
+
+- name: Start hostagent service
+  service:
+    name: sunruniaas-hostagent
+    state: restarted
+    enabled: yes

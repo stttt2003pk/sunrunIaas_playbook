@@ -1,0 +1,22 @@
+---
+- name: Ensure iptables is installed (RedHat).
+  yum: name={{ item }} state=installed
+  when: ansible_os_family == 'RedHat'
+  with_items:
+    - firewalld
+    - iptables
+
+- name: Flush iptables the first time playbook runs.
+  command: iptables -F
+
+- name: Copy firewall script into place.
+  template: src=etc/firewalld/zones/public.xml.j2 dest=/etc/firewalld/zones/public.xml owner=root group=root mode=0744
+
+- name: Copy firewall init script into place.
+  template: src=etc/firewalld/zones/trusted.xml.j2 dest=/etc/firewalld/zones/trusted.xml owner=root group=root mode=0744
+
+- name: Ensure the firewall is enabled and will start on boot.
+  service: name=firewalld state=restarted enabled=yes
+
+- name: Sleep for 10 seconds until firewalld is ready
+  local_action: wait_for port=22 host="{{ ansible_ssh_host }}" delay=1 timeout=10

@@ -1,0 +1,29 @@
+---
+
+- name: Configure /etc/libvirt/libvirtd.conf
+  template: src=etc/libvirt/libvirtd.conf.j2 dest=/etc/libvirt/libvirtd.conf owner=root group=root mode=0644
+  notify: restart libvirtd
+
+- name: Configure /etc/libvirt/qemu.conf
+  template: src=etc/libvirt/qemu.conf.j2 dest=/etc/libvirt/qemu.conf owner=root group=root mode=0644
+  notify: restart libvirtd
+
+- name: Configure /etc/sysconfig/libvirtd
+  template: src=etc/sysconfig/libvirtd.j2 dest=/etc/sysconfig/libvirtd owner=root group=root mode=0644
+  notify: restart libvirtd
+
+- name: Configure /etc/sysconfig/libvirt-guests
+  template: src=etc/sysconfig/libvirt-guests.j2 dest=/etc/sysconfig/libvirt-guests owner=root group=root mode=0644
+  notify: restart libvirt-guests
+
+- name: Restart libvirtd and libvirt-guests
+  service:
+    name: "{{ item }}"
+    state: restarted
+    enabled: yes
+  with_items:
+    - libvirtd
+    - libvirt-guests
+
+- name: Remove default virtual network from libvirtd
+  virt_net: name=default state=absent

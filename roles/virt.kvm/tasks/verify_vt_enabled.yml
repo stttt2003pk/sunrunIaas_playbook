@@ -1,0 +1,14 @@
+---
+
+- name: Verify that Virtualization Technology (VT) is enabled
+  kvm_hw_virt_enabled:
+  register: hw_virt_result
+
+- name: Verify that KVM kernel module is loader
+  kvm_mod_loaded:
+  register: kvm_mod_result
+
+- name: Enable Nested virtualization
+  kvm_enable_nested:
+  when: nested_virt_enable is defined and nested_virt_enable
+

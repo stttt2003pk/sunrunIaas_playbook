@@ -1,0 +1,15 @@
+---
+
+- name: Add database users
+  mysql_user: name={{ item.username }} password={{ item.password }} host=% priv={{ item.database }}.*:ALL state=present
+  with_items: "{{ db_users }}"
+
+- name: Reload privilege tables
+  command: 'mysql -ne "{{ item }}"'
+  with_items:
+    - FLUSH PRIVILEGES
+  changed_when: False
+
+- name: Create databases
+  mysql_db: name={{ item.name }} encoding={{ item.encoding }} collation={{ item.collation }} state=present
+  with_items: "{{ db_list }}"

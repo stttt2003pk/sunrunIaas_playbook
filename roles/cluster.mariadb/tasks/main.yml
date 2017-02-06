@@ -1,0 +1,58 @@
+---
+# tasks file for ansible-mariadb-galera
+
+- name: Count number of database server
+  set_fact: db_cluster_size={{ db_servers | length }}
+
+- name: Check conditions for MariaDB Galera Cluster
+  set_fact:
+    cluster_is_ok: yes
+  when: db_cluster_size > 1
+
+- name: Check if MySQL is running
+  find: paths="/var/lib/mysql" patterns="*.pid"
+  register: mysql_pid_file
+
+- name: Stop MySQL service
+  shell: /etc/init.d/mysql stop
+  when: mysql_pid_file.matched > 0
+
+- name: Make sure no mysqld instance is running
+  mysql_kill:
+
+- name: Clean existed MariaDB galera cluster
+  include: uninstall_mariadb.yml
+  when: clean_existed_db
+
+- name: Install MariaDB software
+  shell: yum install -y MariaDB-Galera-server MariaDB-client galera MySQL-python
+
+- name: Add .my.cnf
+  template: src=my.cnf.j2 dest=/root/.my.cnf owner=root group=root mode=0600
+
+- name: MySQL secure installation
+  include: mysql_secure_installation.yml
+  when: mysql_master is defined and mysql_master and clean_existed_db
+
+- name: Deploy galera config file to the other servers
+  template: src=galera.conf.j2 dest=/etc/my.cnf.d/galera.cnf
+  when: cluster_is_ok
+
+- name: Bootstrap mysql galera cluster
+  shell: /etc/init.d/mysql bootstrap
+  when: cluster_is_ok and mysql_master is defined and mysql_master
+
+- name: Start and enable mysqld
+  shell: /etc/init.d/mysql start
+  when: not cluster_is_ok or mysql_master is undefined or not mysql_master
+
+- name: Check cluster if ready
+  mysql_cluster_status: cluster_size={{ db_cluster_size }}
+  when: cluster_is_ok
+
+- name: Configure database
+  include: config_db.yml
+  when: mysql_master is defined and mysql_master
+
+- name: Remove .my.cnf
+  file: path=/root/.my.cnf state=absent

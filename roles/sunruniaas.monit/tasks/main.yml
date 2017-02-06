@@ -1,0 +1,17 @@
+---
+# tasks file for ansible-role-hosts-deploy
+
+- name: Remove existed sunruniaas-monit package
+  shell: yum erase {{ item }} -y
+  with_items:
+    - sunruniaas-monit
+
+- name: Install sunruniaas-monit packages
+  shell: yum localinstall {{ item }} -y
+  with_items:
+    - /opt/sunrun/rpms/files/sunruniaas-monit*
+
+- name: Start sunruniaas-monit service
+  shell: nohup /etc/init.d/srmonitserver restart
+
+

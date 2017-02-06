@@ -1,0 +1,17 @@
+---
+# tasks file for ansible-role-kvm-host
+
+- include: verify_vt_enabled.yml
+  tags:
+  - kvm-host
+
+- include: install.yml
+  tags:
+  - kvm-host
+  - kvm-host:install
+
+- include: configure.yml
+  tags:
+  - kvm-host
+  - kvm-host:config
+  - config_hostagent

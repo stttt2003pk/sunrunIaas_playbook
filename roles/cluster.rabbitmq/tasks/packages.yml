@@ -1,0 +1,38 @@
+---
+# Install required packages
+
+- name: remove old packages
+  yum:
+    name: "{{ item }}"
+    state: absent
+  with_items:
+    - erlang
+    - rabbitmq-server
+  when: clean_existed_rabbitmq
+
+- name: remove existed files
+  file: path=/var/lib/rabbitmq state=absent
+  when: clean_existed_rabbitmq
+
+- name: install erlang packages
+  yum:
+    name: "{{ item }}"
+    state: installed
+  with_items:
+    - erlang
+  when: rabbitmq_create_cluster
+
+- name: install rabbitmq-server packages
+  yum:
+    name: "{{ item }}"
+    state: installed
+  with_items:
+    - rabbitmq-server
+
+- name: install ssl-cert
+  apt: pkg=ssl-cert state=present
+  when: rabbitmq_ssl and rabbitmq_ssl_use_snakeoil_cert
+
+- name: add rabbitmq user to the ssl-cert group
+  user: name=rabbitmq append=yes groups=ssl-cert
+  when: rabbitmq_ssl and rabbitmq_ssl_use_snakeoil_cert

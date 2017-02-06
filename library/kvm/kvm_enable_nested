@@ -1,0 +1,105 @@
+#!/usr/bin/python
+
+import commands
+import re
+from os import popen
+
+
+def enable_nested_virt(kvm_mod_type):
+    """
+
+    :param kvm_mod_type:
+    :return:
+    """
+
+    if not kvm_mod_type:
+        raise Exception('Neither kvm_intel nor kvm_amd module is loaded')
+
+    cmdline = "echo 'options kvm-%s nested=y' > /etc/modprobe.d/kvm_mod.conf" % kvm_mod_type
+    (rc, output) = commands.getstatusoutput(cmdline)
+
+    if rc != 0:
+        raise Exception('Fail to write KVM module configuration file')
+
+    (rc, output) = commands.getstatusoutput('rmmod kvm-%s' % kvm_mod_type)
+    if rc != 0:
+        return 0, 'Reboot is required'
+
+    (rc, output) = commands.getstatusoutput('modprobe kvm-%s' % kvm_mod_type)
+    if rc != 0:
+        raise Exception('Fail to load kvm module')
+
+    return 0, None
+
+def check_nested_virt(kvm_mod_type):
+    """
+    :param kvm_mod_type:
+    :return:
+    """
+
+    if not kvm_mod_type:
+        raise Exception('Neither kvm_intel nor kvm_amd module is loaded')
+
+    if kvm_mod_type == 'intel':
+        nested_flag_file = '/sys/module/kvm_intel/parameters/nested'
+    elif kvm_mod_type == 'amd':
+        nested_flag_file = '/sys/module/kvm_amd/parameters/nested'
+    else:
+        raise Exception('Unsupported KVM module type')
+
+    with open(nested_flag_file) as nested_fp:
+        nested_flag = nested_fp.read().strip()
+        if nested_flag:
+            nested_flag = nested_flag.upper()
+
+            if nested_flag == 'Y' or nested_flag == '1':
+                return True
+
+            return False
+        else:
+            raise Exception('Unknown nested flag')
+
+
+def kvm_enable_nested(module):
+    try:
+        kvm_mod_type = None
+        loaded_mods = popen('lsmod').read()
+        intel_re = re.compile(r'\s(kvm_intel)\s')
+        if intel_re.search(loaded_mods):
+            kvm_mod_type = 'intel'
+
+        amd_re = re.compile(r'\s(kvm_amd)\s')
+        if amd_re.search(loaded_mods):
+            kvm_mod_type = 'amd'
+
+        if not check_nested_virt(kvm_mod_type):
+            return enable_nested_virt(kvm_mod_type)
+        return 0, None
+    except Exception as e:
+        return 1, str(e)
+
+
+def main():
+    module = AnsibleModule(
+        argument_spec=dict(
+        ),
+        supports_check_mode=True
+    )
+
+    # In check mode, we take no action
+    # Since this module never changes system state, we just
+    # return changed=False
+    if module.check_mode:
+        module.exit_json(changed=False)
+
+    (rc, msg) = kvm_enable_nested(module)
+    if rc == 0:
+        msg = msg or ""
+        module.exit_json(changed=False, stdout=msg, stderr="", rc=rc)
+    else:
+        module.fail_json(msg=msg, stdout='', stderr=msg, rc=rc)
+
+
+from ansible.module_utils.basic import *
+
+main()

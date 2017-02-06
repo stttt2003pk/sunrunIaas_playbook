@@ -1,0 +1,22 @@
+- name: Install required packages
+  become: yes
+  yum:
+    name: "{{ item}}"
+  with_items:
+    - qemu-kvm
+    - qemu-kvm-tools
+    - qemu-img
+    - libvirt
+    - libvirt-python
+    - libguestfs-tools
+    - libguestfs-winsupport
+    - python-libguestfs
+    - python-lxml
+
+- name: Install virt-manager
+  become: yes
+  when: install_virt_manager
+  yum:
+    name: "{{ item }}"
+  with_items:
+    - virt-manager

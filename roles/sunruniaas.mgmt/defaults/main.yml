@@ -1,0 +1,5 @@
+---
+
+clean_existed_mgmt: no
+mgmt_db_host: 127.0.0.1
+

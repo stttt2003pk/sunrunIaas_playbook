@@ -1,0 +1,27 @@
+---
+# tasks file for hostname
+
+- name: Include distribution specific variables
+  include_vars: "{{ ansible_distribution }}.yml"
+  tags: hostname
+
+- include: CentOS.yml
+  when: ansible_distribution == "CentOS"
+  tags: hostname
+
+- include: Ubuntu.yml
+  when: ansible_distribution == "Ubuntu"
+  tags: hostname
+
+- name: Configure hostname
+  hostname: name={{ hostname_name }}
+  tags: hostname
+
+- name: set hostname permanently
+  copy:
+    content="{{ hostname_name }}{{'\n'}}"
+       dest=/etc/hostname
+      owner=root
+      group=root
+       mode=0644
+  tags: hostname

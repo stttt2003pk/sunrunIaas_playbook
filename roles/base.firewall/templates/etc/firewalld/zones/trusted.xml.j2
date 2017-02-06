@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<zone target="ACCEPT">
+  <short>Trusted</short>
+  <description>All network connections are accepted.</description>
+
+  {% for item in extra_trust_hosts %}
+  <source address="{{ item }}"/>
+  {% endfor %}
+  {% for item in groups['all'] %}{% if hostvars[item].ansible_ssh_host not in extra_trust_hosts %}
+  <source address="{{ hostvars[item].ansible_ssh_host }}"/>
+  {% endif %}{% endfor %}
+</zone>

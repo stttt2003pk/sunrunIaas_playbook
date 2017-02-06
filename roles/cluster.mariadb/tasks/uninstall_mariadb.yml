@@ -1,0 +1,10 @@
+---
+
+- name: Uninstall MariaDB-server
+  shell: yum erase *mariadb* *MariaDB* galera* -y
+
+- name: Delete original mysql directory
+  file: path=/var/lib/mysql state=absent
+
+- name: Delete original cnf.d directory
+  file: path=/etc/my.cnf.d state=absent

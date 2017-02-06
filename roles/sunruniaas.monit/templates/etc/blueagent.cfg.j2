@@ -1,0 +1,6 @@
+{
+    "mqHosts": [{{ mq_server_list | join(", ") }}],
+    "hostIp": "{{ ansible_ssh_host }}"{% if hostagent_bwlimit is defined %},
+    "bwlimit": {{ hostagent_bwlimit }}{% endif %}
+
+}

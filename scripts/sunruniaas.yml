@@ -1,0 +1,250 @@
+---
+
+- name: SunrunIaaS setup
+  hosts: all
+  vars:
+    gluster_peers: []
+    extra_trust_hosts: []
+    extra_public_rules: []
+    mq_server_list: []
+    hac_host_list: []
+    db_server_list: []
+
+    hac_is_ok: no
+
+  pre_tasks:
+
+    - name: Include variable file
+      include_vars: sunruniaas_vars.yml
+      tags:
+        - always
+
+    - name: Clean install files
+      file: path=/opt/sunrun/rpms state=absent
+      when: >
+        (install_hostagent is defined and install_hostagent) or
+        (install_mgmt is defined and install_mgmt) or
+        (install_hac is defined and install_hac) or
+        (install_imageservice is defined and install_imageservice)
+      tags:
+        - upgrade_hostagent
+        - upgrade_monit
+        - upgrade_mgmt
+        - upgrade_glance
+        - upgrade_hac
+        - fresh_new
+
+    - name: Prepare /etc/sunrun directory
+      file: path=/opt/sunrun/rpms state=directory mode=0755
+      when: >
+        (install_hostagent is defined and install_hostagent) or
+        (install_mgmt is defined and install_mgmt) or
+        (install_hac is defined and install_hac) or
+        (install_imageservice is defined and install_imageservice)
+      tags:
+        - upgrade_hostagent
+        - upgrade_monit
+        - upgrade_mgmt
+        - upgrade_glance
+        - upgrade_hac
+        - fresh_new
+
+    - name: Prepare SunrunIaaS RPM files
+      copy: src=files dest=/opt/sunrun/rpms
+      when: >
+        (install_hostagent is defined and install_hostagent) or
+        (install_mgmt is defined and install_mgmt) or
+        (install_hac is defined and install_hac) or
+        (install_imageservice is defined and install_imageservice)
+      tags:
+        - upgrade_hostagent
+        - upgrade_monit
+        - upgrade_mgmt
+        - upgrade_glance
+        - upgrade_hac
+        - fresh_new
+
+    - name: Set gluster peer list
+      set_fact:
+        gluster_peers: "{{ gluster_peers }} + [ {{ { \"name\": hostvars[item].gluster_peer_name, \"ip\": hostvars[item].gluster_peer_ip } }}]"
+      with_items: "{{ groups['glusters'] }}"
+      when: >
+        (hostvars[item].install_glusterfs is defined and hostvars[item].install_glusterfs)
+        and (hostvars[item].gluster_peer_name is defined and hostvars[item].gluster_peer_name)
+        and (hostvars[item].gluster_peer_ip is defined and hostvars[item].gluster_peer_ip)
+      tags:
+        - always
+
+    - name: Set extra trusted hosts
+      set_fact:
+        extra_trust_hosts: "{{ extra_trust_hosts }} + ['{{ hostvars[item].gluster_peer_ip }}']"
+      with_items: "{{ groups['glusters'] }}"
+      when: >
+        (hostvars[item].install_glusterfs is defined and hostvars[item].install_glusterfs)
+        and (hostvars[item].gluster_peer_name is defined and hostvars[item].gluster_peer_name)
+        and (hostvars[item].gluster_peer_ip is defined and hostvars[item].gluster_peer_ip)
+      tags:
+        - always
+
+    - name: Set NTPD master
+      set_fact: master_ntp_server={{ hostvars[item].ansible_ssh_host }}
+      with_items: "{{ groups['ntp'] }}"
+      when: >
+        hostvars[item].ntp_master is defined and hostvars[item].ntp_master
+        and config_ntp is defined and config_ntp
+      tags:
+        - always
+
+    - name: Set RabbitMQ master
+      set_fact: master_mq_server={{ item }}
+      with_items: "{{ groups['rabbits'] }}"
+      when: >
+        hostvars[item].mq_master is defined and hostvars[item].mq_master
+        and install_rabbitmq is defined and install_rabbitmq
+      tags:
+        - always
+
+    - name: Generate MQ server list
+      set_fact: mq_server_list="{{ mq_server_list }} + ['\"{{ hostvars[item].ansible_ssh_host }}\"']"
+      with_items: "{{ groups['rabbits'] }}"
+      tags:
+        - always
+
+    - name: Generate database server list
+      set_fact: db_server_list="{{ db_server_list }} + ['{{ item }}']"
+      with_items: "{{ groups['mariadbs'] }}"
+      when: >
+        install_db is defined and install_db
+      tags:
+        - always
+
+    - name: Generate HAC hosts list
+      set_fact: hac_host_list="{{ hac_host_list }} + ['\"{{ hostvars[item].ansible_ssh_host }}\"']"
+      with_items: "{{ groups['hacluster'] }}"
+      when: install_hac is defined and install_hac
+      tags:
+        - always
+
+    - name: Verify HAC is ok
+      set_fact:
+        hac_is_ok: yes
+      when: hac_host_list | length | int > 1
+      tags:
+        - always
+
+    - name: Verify NetworkManager service is shutdown and disabled
+      service:
+        name: NetworkManager
+        state: stopped
+        enabled: no
+      tags:
+        - always
+
+    - name: Verify firewalld is shutdown and disabled
+      service:
+        name: firewalld
+        state: stopped
+        enabled: no
+      tags:
+        - always
+
+    - name: Clean all iptable rules
+      shell: iptables -F
+      tags:
+        - always
+
+  roles:
+
+    - role: base.firewall
+      extra_trust_hosts: "{{ extra_trust_hosts }}"
+      extra_public_rules: "{{ extra_public_rules }}"
+      tags:
+        - always
+
+    - role: base.hostname
+      hostname_name: "{{ inventory_hostname }}"
+      when: config_hostname is defined and config_hostname
+      tags:
+        - always
+
+    - role: base.hosts
+      extra_hosts: "{{ gluster_peers }}"
+      tags:
+        - always
+
+    - role: base.selinux
+      selinux_state: disabled
+      tags:
+        - always
+
+    - role: base.yumrepo
+      tags:
+        - always
+
+    - role: base.ntp
+      ntp_enabled: true
+      ntp_timezone: "Asia/Shanghai"
+      ntp_manage_config: true
+      when: config_ntp is defined and config_ntp
+      tags:
+        - upgrade_ntp
+
+    - role: cluster.mariadb
+      db_users: "{{ mysql_db_users }}"
+      db_list: "{{ mysql_databases }}"
+      db_servers: "{{ db_server_list }}"
+      cluster_name: iaas_db_cluster
+      when: install_db is defined and install_db
+
+    - role: cluster.rabbitmq
+      rabbitmq_create_cluster: yes
+      rabbitmq_cluster_master: "{{ master_mq_server }}"
+      rabbitmq_vhosts: "{{ rabbitmq_vhosts }}"
+      rabbitmq_ha_enabled: yes
+      rabbitmq_users: "{{ rabbitmq_users }}"
+      rabbitmq_nodename: "{{inventory_hostname}}"
+      when: install_rabbitmq is defined and install_rabbitmq
+
+    - role: cluster.glusterfs
+      group_name: glusters
+      when: install_glusterfs is defined and install_glusterfs
+
+    - role: virt.kvm
+      when: install_hostagent is defined and install_hostagent
+      tags:
+        - upgrade_hostagent
+        - config_hostagent
+
+    - role: sunruniaas.hostagent
+      mq_server_list: "{{ mq_server_list }}"
+      when: install_hostagent is defined and install_hostagent
+      tags:
+        - upgrade_hostagent
+        - config_hostagent
+
+    - role: sunruniaas.monit
+      when: install_hostagent is defined and install_hostagent
+      tags:
+        - upgrade_monit
+
+    - role: sunruniaas.mgmt
+      mq_server_list: "{{ mq_server_list }}"
+      when: install_mgmt is defined and install_mgmt
+      tags:
+        - upgrade_mgmt
+        - config_mgmt
+
+    - role: sunruniaas.glance
+      when: install_imageservice is defined and install_imageservice
+      tags:
+        - upgrade_glance
+        - config_glance
+
+    - role: sunrun.hac
+      hac_members: "{{ hac_host_list }}"
+      when: hac_is_ok and install_hac is defined and install_hac
+      tags:
+        - upgrade_hac
+        - config_hac
+
+  post_tasks:

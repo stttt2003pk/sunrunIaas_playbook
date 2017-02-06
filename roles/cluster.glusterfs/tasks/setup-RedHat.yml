@@ -1,0 +1,9 @@
+---
+
+- include: reset_glusterfs.yml
+  when: clean_existed_gluster
+
+- name: Ensure GlusterFS is installed.
+  shell: yum install {{ item }} -y
+  with_items:
+    - glusterfs-server

@@ -1,0 +1,42 @@
+#!/usr/bin/python
+
+
+def gluster_peer_uuid(module):
+    try:
+        with open('/var/lib/glusterd/glusterd.info') as ini_file:
+            for line in ini_file.readlines():
+                peer_info = line.split('=')
+                if peer_info[0] == 'UUID':
+                    uuid_str = peer_info[1].strip()
+                    if uuid_str:
+                        return 0, uuid_str
+                    else:
+                        return 1, None
+
+        return 1, None
+    except:
+        return 1, None
+
+
+def main():
+    module = AnsibleModule(
+        argument_spec=dict(
+        ),
+        supports_check_mode=True
+    )
+
+    # In check mode, we take no action
+    # Since this module never changes system state, we just
+    # return changed=False
+    if module.check_mode:
+        module.exit_json(changed=False)
+
+    (rc, uuid) = gluster_peer_uuid(module)
+    if rc == 0:
+        module.exit_json(changed=False, stdout=uuid, stderr="", rc=rc)
+    else:
+        msg = "Invalid gluster node"
+        module.fail_json(msg=msg, stdout=uuid, stderr="", rc=rc)
+
+from ansible.module_utils.basic import *
+main()

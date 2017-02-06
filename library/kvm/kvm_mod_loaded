@@ -1,0 +1,45 @@
+#!/usr/bin/python
+
+import re
+from os import popen
+
+
+def kvm_mod_loaded(module):
+    try:
+        loaded_mods = popen('lsmod').read()
+        intel_re = re.compile(r'\s(kvm_intel)\s')
+        if intel_re.search(loaded_mods):
+            return 0, 'intel'
+
+        amd_re = re.compile(r'\s(kvm_amd)\s')
+        if amd_re.search(loaded_mods):
+            return 0, 'amd'
+
+        raise Exception('Neither kvm_intel nor kvm_amd module is loaded')
+    except Exception as e:
+        return 1, str(e)
+
+
+def main():
+    module = AnsibleModule(
+        argument_spec=dict(
+        ),
+        supports_check_mode=True
+    )
+
+    # In check mode, we take no action
+    # Since this module never changes system state, we just
+    # return changed=False
+    if module.check_mode:
+        module.exit_json(changed=False)
+
+    (rc, msg) = kvm_mod_loaded(module)
+    if rc == 0:
+        module.exit_json(changed=False, stdout=msg, stderr="", rc=rc)
+    else:
+        module.fail_json(msg=msg, stdout='', stderr=msg, rc=rc)
+
+
+from ansible.module_utils.basic import *
+
+main()

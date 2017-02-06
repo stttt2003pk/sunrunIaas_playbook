@@ -1,0 +1,58 @@
+---
+
+## Basic installation settings
+
+#yumrepo_repos:
+#
+#  base:
+#    # Additional parameters
+#    name: CentOS-7 - All in one
+#    baseurl: http://192.168.1.104:8000/allineone
+#    enabled: 1
+#    gpgcheck: 0
+
+## SunrunIaaS cluster configuration
+#hostagent_bwlimit: 10
+#mgmt_db_host: 10.11.12.3
+#imageservice_host_dir: /opt/sunrun/data/ftp
+
+## MySQL DB configuration
+mysql_db_users:
+  - username: sunrun
+    password: bluelotus
+    database: bluelotus
+
+mysql_databases:
+  - name: bluelotus
+    encoding: utf8
+    collation: utf8_bin
+
+#mysql_root_password: sunrunvas
+
+## Sunrun HA Cluster configuration
+#sunrun_hac_conf:
+#  group_id: 10
+#  iface_name: eth0
+#  vip_address: 10.11.12.100
+#  vip_netmask: 255.255.0.0
+#  log_lvl: 5
+
+#sunrun_hac_processes:
+#  - name: mysqld
+#
+#sunrun_hac_ports:
+#  - 5672
+
+## RabbitMQ configuration
+#erlang_cookie: NNYm39bSA1i7yB+fQjTdiOJK
+rabbitmq_vhosts:
+  - bluelotus
+
+rabbitmq_users:
+  - user: sunrun
+    password: bluelotus
+    vhost: bluelotus
+    configure_priv: .*
+    read_priv: .*
+    write_priv: .*
+    tags: administrator
